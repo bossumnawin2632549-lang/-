@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Expense Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .balance {
+            font-size: 40px;
+            font-weight: bold;
+            color: #333;
+            margin: 5px 0 15px 0;
+        }
+        
+        /* กล่องสรุปรายเดือนปรับใหม่ให้มี 3 ช่อง */
+        .monthly-box {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #bbdefb;
+        }
+        .monthly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .monthly-header input {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .summary-col {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .input-group label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: -5px;
+        }
+        .row-group {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        
+        /* ปุ่มลัดใส่ราคา */
+        .quick-btn-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .quick-btn {
+            flex: 1;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #333;
+            font-weight: bold;
+        }
+        .quick-btn:hover { background-color: #e0e0e0; }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-income { background-color: #4CAF50; }
+        .btn-expense { background-color: #f44336; }
+        
+        /* ปุ่มล่างสุด (Reset / Undo / Redo) */
+        .action-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-undo-redo {
+            background-color: #ff9800; /* สีส้ม */
+            padding: 8px;
+            font-size: 14px;
+        }
+        .btn-undo-redo:hover { background-color: #f57c00; }
+        .btn-undo-redo:disabled { background-color: #ffcc80; cursor: not-allowed; }
+        
+        .btn-reset {
+            background-color: #607d8b;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .history-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+            text-align: left;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .date-label {
+            font-size: 11px;
+            color: #888;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+        .item-info { display: flex; align-items: center; }
+        .text-green { color: #4CAF50; font-weight: bold; }
+        .text-red { color: #f44336; font-weight: bold; }
+        .text-blue { color: #1565c0; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>กระเป๋าตังค์มินิมอล</h2>
+        
+        <p style="margin-bottom: 5px; color: #555; font-size: 14px;">ยอดเงินสะสมรวมทั้งหมด</p>
+        <div class="balance" id="balanceDisplay">0 ฿</div>
+        
+        <div class="monthly-box">
+            <div class="monthly-header">
+                <strong style="color: #1565c0;">📊 สรุปรายเดือน</strong>
+                <input type="month" id="monthSelector" onchange="updateUI()">
+            </div>
+            <div class="summary-row">
+                <div class="summary-col text-green">รับ<br><span id="monthlyIncome">0</span> ฿</div>
+                <div class="summary-col text-blue">คงเหลือ<br><span id="monthlyNet">0</span> ฿</div>
+                <div class="summary-col text-red">จ่าย<br><span id="monthlyExpense">0</span> ฿</div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>วันที่ทำรายการ</label>
+            <input type="date" id="dateInput">
+            
+            <input type="text" id="descInput" placeholder="รายการนี้คืออะไร? (เช่น ข้าวผัด)">
+            
+            <div class="row-group">
+                <input type="number" id="amountInput" placeholder="ราคา/หน่วย (บาท)" style="flex: 2;">
+                <input type="number" id="qtyInput" placeholder="จำนวน" value="1" min="1" style="flex: 1;">
+            </div>
+        </div>
+
+        <div class="quick-btn-group">
+            <button class="quick-btn" onclick="addQuickAmount(20)">+20฿</button>
+            <button class="quick-btn" onclick="addQuickAmount(50)">+50฿</button>
+            <button class="quick-btn" onclick="addQuickAmount(100)">+100฿</button>
+            <button class="quick-btn" onclick="addQuickAmount(500)">+500฿</button>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-income" onclick="addTransaction('income')">+ รายรับ</button>
+            <button class="btn-expense" onclick="addTransaction('expense')">- รายจ่าย</button>
+        </div>
+
+        <div class="action-btn-group">
+            <button class="btn-undo-redo" id="btnUndo" onclick="undo()" disabled>↩ ย้อนกลับ</button>
+            <button class="btn-undo-redo" id="btnRedo" onclick="redo()" disabled>ทำซ้ำ ↪</button>
+            <button class="btn-reset" onclick="resetAll()">ล้างทั้งหมด</button>
+        </div>
+
+        <ul class="history-list" id="historyList"></ul>
+    </div>
+
+    <script>
+        let transactions = [];
+        let undoneTransactions = []; // กล่องเก็บข้อมูลที่ถูก Undo เผื่อกด Redo กลับมา
+
+        window.onload = function() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            
+            document.getElementById('dateInput').value = `${year}-${month}-${day}`;
+            document.getElementById('monthSelector').value = `${year}-${month}`;
+        };
+
+        function addQuickAmount(value) {
+            const amountInput = document.getElementById('amountInput');
+            let currentAmount = parseFloat(amountInput.value) || 0;
+            amountInput.value = currentAmount + value;
+        }
+
+        function addTransaction(type) {
+            const dateInput = document.getElementById('dateInput');
+            const amountInput = document.getElementById('amountInput');
+            const qtyInput = document.getElementById('qtyInput');
+            const descInput = document.getElementById('descInput');
+            
+            const dateVal = dateInput.value; 
+            const price = parseFloat(amountInput.value);
+            const qty = parseInt(qtyInput.value);
+            const desc = descInput.value.trim();
+
+            if (!dateVal || isNaN(price) || price <= 0 || isNaN(qty) || qty < 1 || desc === "") {
+                alert("กรุณากรอกข้อมูล วันที่ ราคา และจำนวนให้ครบถ้วนนะครับ");
+                return;
+            }
+
+            const totalAmount = price * qty;
+            let displayDesc = desc;
+            if (qty > 1) displayDesc += ` (x${qty})`;
+
+            transactions.push({
+                id: Date.now(),
+                date: dateVal,
+                desc: displayDesc,
+                amount: totalAmount,
+                type: type
+            });
+
+            // เมื่อมีการกดบันทึกใหม่ จะเคลียร์ข้อมูลที่เคยถูก Undo ทิ้งไป (เหมือนระบบแอปทั่วไป)
+            undoneTransactions = [];
+            
+            updateUI();
+            
+            amountInput.value = "";
+            descInput.value = "";
+            qtyInput.value = "1";
+        }
+
+        // ฟังก์ชันใหม่: Undo (ดึงรายการล่าวุดออกไปเก็บไว้)
+        function undo() {
+            if (transactions.length > 0) {
+                const removedTx = transactions.pop(); // ดึงอันล่าสุดออก
+                undoneTransactions.push(removedTx); // เอาไปเก็บไว้ในกล่อง Redo
+                updateUI();
+            }
+        }
+
+        // ฟังก์ชันใหม่: Redo (ดึงรายการที่ถูก Undo กลับมา)
+        function redo() {
+            if (undoneTransactions.length > 0) {
+                const restoredTx = undoneTransactions.pop(); // ดึงออกจากกล่อง Redo
+                transactions.push(restoredTx); // คืนค่ากลับไปที่เดิม
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            let totalBalance = 0;
+            let monthlyIn = 0;
+            let monthlyOut = 0;
+            
+            const selectedMonth = document.getElementById('monthSelector').value;
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = ""; 
+
+            // สร้าง Array สำรองสำหรับแสดงผล โดยเรียงจากวันที่ใหม่สุดไปเก่าสุด
+            // (การใช้ Array สำรองทำให้เรา Undo/Redo ได้ถูกต้องตามลำดับการกดจริงๆ)
+            const sortedTransactions = [...transactions].sort((a, b) => {
+                const dateDiff = new Date(b.date) - new Date(a.date);
+                if (dateDiff === 0) return b.id - a.id; // ถ้าวันเดียวกัน ให้เอาอันที่กดล่าสุดขึ้นก่อน
+                return dateDiff;
+            });
+
+            sortedTransactions.forEach(tx => {
+                if (tx.type === 'income') totalBalance += tx.amount;
+                else totalBalance -= tx.amount;
+
+                if (tx.date.startsWith(selectedMonth)) {
+                    if (tx.type === 'income') monthlyIn += tx.amount;
+                    else monthlyOut += tx.amount;
+                }
+
+                const dateObj = new Date(tx.date);
+                const dateStr = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+
+                const item = document.createElement('li');
+                item.className = 'history-item';
+                const colorClass = tx.type === 'income' ? 'text-green' : 'text-red';
+                const symbol = tx.type === 'income' ? '+' : '-';
+
+                item.innerHTML = `
+                    <div class="item-info">
+                        <span class="date-label">${dateStr}</span>
+                        <span>${tx.desc}</span>
+                    </div>
+                    <span class="${colorClass}">${symbol}${tx.amount.toLocaleString()} ฿</span>
+                `;
+                historyList.appendChild(item);
+            });
+
+            // คำนวณยอดคงเหลือของเดือนนี้ (ตรงกลาง)
+            const monthlyNet = monthlyIn - monthlyOut;
+
+            // อัปเดตตัวเลขบนหน้าจอ
+            document.getElementById('balanceDisplay').innerText = totalBalance.toLocaleString() + " ฿";
+            document.getElementById('monthlyIncome').innerText = monthlyIn.toLocaleString();
+            document.getElementById('monthlyExpense').innerText = monthlyOut.toLocaleString();
+            
+            // ถ้ายอดคงเหลือติดลบ ให้เปลี่ยนสีตัวหนังสือตรงกลางเป็นสีแดง
+            const netDisplay = document.getElementById('monthlyNet');
+            netDisplay.innerText = monthlyNet.toLocaleString();
+            netDisplay.style.color = monthlyNet < 0 ? "#f44336" : "#1565c0";
+
+            // เปิด/ปิด ปุ่ม Undo Redo อัตโนมัติ
+            document.getElementById('btnUndo').disabled = transactions.length === 0;
+            document.getElementById('btnRedo').disabled = undoneTransactions.length === 0;
+        }
+
+        function resetAll() {
+            if (confirm("คุณต้องการล้างข้อมูลยอดเงินและประวัติทั้งหมดใช่หรือไม่?")) {
+                transactions = []; 
+                undoneTransactions = [];
+                updateUI(); 
+                alert("รีเซ็ตข้อมูลเรียบร้อยแล้วครับ");
+            }
+        }
+    </script>
+
+</body>
+</html>
